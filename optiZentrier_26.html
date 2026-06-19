@@ -1,0 +1,1343 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>OptiZentrier</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;background:#0a0a0a;color:#fff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overflow:hidden}
+.screen{position:absolute;inset:0;display:none;flex-direction:column}
+.screen.active{display:flex}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 18px 10px;background:#111;flex-shrink:0;min-height:50px}
+.topbar-title{font-size:15px;font-weight:600}
+.topbar-action{font-size:13px;color:#1D9E75;cursor:pointer;padding:4px 0}
+.topbar-action.red{color:#f87171}
+
+/* HOME */
+#s-home{background:#0a0a0a;justify-content:space-between}
+.home-hero{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:30px 24px}
+.logo-ring{width:80px;height:80px;border-radius:50%;border:2px solid #1D9E75;display:flex;align-items:center;justify-content:center}
+.logo-inner{width:32px;height:32px;border-radius:50%;border:1.5px solid #1D9E75;display:flex;align-items:center;justify-content:center}
+.logo-dot{width:8px;height:8px;border-radius:50%;background:#1D9E75}
+.home-title{font-size:22px;font-weight:600;text-align:center}
+.home-sub{font-size:13px;color:#aaa;text-align:center;margin-top:4px}
+.cal-badge{background:#0d2a1a;border:1px solid #1D9E75;border-radius:20px;padding:5px 14px;font-size:11px;color:#1D9E75}
+.home-actions{display:flex;flex-direction:column;gap:10px;width:100%;padding:0 24px 36px}
+.btn-primary{background:#1D9E75;border:none;border-radius:14px;padding:16px;font-size:15px;font-weight:600;color:#fff;cursor:pointer;width:100%}
+.btn-secondary{background:#1a1a1a;border:1px solid #2a2a2a;border-radius:14px;padding:13px;font-size:13px;color:#aaa;cursor:pointer;width:100%}
+
+/* CAMERA PICKER */
+#s-campicker{background:#0a0a0a;overflow-y:auto}
+.picker-body{padding:16px;display:flex;flex-direction:column;gap:10px}
+
+/* CAMERA */
+#s-camera{background:#000}
+.cam-wrap{flex:1;position:relative;overflow:hidden}
+#video{width:100%;height:100%;object-fit:cover}
+#overlay-canvas{position:absolute;inset:0;width:100%;height:100%}
+.cam-status{position:absolute;top:12px;left:0;right:0;display:flex;justify-content:center;pointer-events:none}
+.status-pill{font-size:11px;padding:5px 14px;border-radius:20px;font-weight:500}
+.status-ready{background:rgba(29,158,117,.9);color:#fff}
+.status-capturing{background:rgba(56,130,246,.85);color:#fff}
+.capture-bar{position:absolute;top:55%;left:50%;transform:translate(-50%,-50%);flex-direction:column;align-items:center;gap:6px;display:none}
+.capture-row{display:flex;gap:10px}
+.cap-dot{width:13px;height:13px;border-radius:50%;background:#333;transition:all .3s}
+.cap-dot.done{background:#1D9E75}
+.cap-dot.active{background:#facc15;transform:scale(1.3)}
+.cam-bottom{background:#111;padding:16px 24px 28px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+.cam-side-btn{font-size:11px;color:#aaa;cursor:pointer;padding:8px;text-align:center;line-height:1.4}
+.shutter{width:64px;height:64px;border-radius:50%;border:3px solid #333;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .25s}
+.shutter.ready{border-color:#1D9E75}
+.shutter-inner{width:50px;height:50px;border-radius:50%;background:#333;transition:background .25s}
+.shutter.ready .shutter-inner{background:#1D9E75}
+
+/* CORRECTION */
+#s-correct{background:#000}
+.correct-wrap{flex:1;position:relative;overflow:hidden;background:#000}
+#correct-canvas{position:absolute;top:0;left:0;display:block;touch-action:none}
+.correct-hint{position:absolute;top:10px;left:0;right:0;text-align:center;pointer-events:none}
+.correct-hint span{background:rgba(0,0,0,.75);font-size:11px;color:#ccc;padding:4px 12px;border-radius:10px}
+.correct-bottom{background:#111;padding:10px 14px 24px;flex-shrink:0}
+.correct-legend{display:flex;gap:14px;justify-content:center;margin-bottom:8px}
+.leg{display:flex;align-items:center;gap:4px;font-size:10px;color:#aaa}
+.leg-dot{width:9px;height:9px;border-radius:50%}
+.sliders-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:8px}
+.slider-row{display:flex;align-items:center;gap:5px}
+.slider-row span{font-size:10px;color:#bbb;flex-shrink:0;width:40px}
+.slider-row input[type=range]{flex:1;height:3px;accent-color:#1D9E75;cursor:pointer}
+.slider-val{font-size:10px;color:#1D9E75;width:24px;text-align:right;flex-shrink:0}
+.correct-actions{display:flex;gap:10px}
+.btn-confirm{flex:1;background:#1D9E75;border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:600;color:#fff;cursor:pointer}
+.btn-reset{background:#1a1a1a;border:1px solid #333;border-radius:12px;padding:13px;font-size:13px;color:#aaa;cursor:pointer}
+
+/* RESULT */
+#s-result{background:#0a0a0a}
+.result-body{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+.result-card{background:#111;border-radius:16px;padding:16px}
+.result-card.hl{border:1px solid #1D9E75}
+.rc-label{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+.rc-values{display:flex}
+.rc-val{flex:1;text-align:center}
+.rc-num{font-size:28px;font-weight:600}
+.rc-unit{font-size:10px;color:#888;margin-top:2px}
+.rc-divider{width:1px;background:#222;margin:4px 0}
+.rc-total{border-top:1px solid #1a1a1a;margin-top:10px;padding-top:10px;display:flex;justify-content:space-between;align-items:baseline}
+.rc-total-label{font-size:11px;color:#888}
+.rc-total-val{font-size:16px;font-weight:600}
+.q-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px}
+.q-item{background:#0a0a0a;border-radius:10px;padding:8px;text-align:center}
+.q-val{font-size:13px;font-weight:500;color:#1D9E75}
+.q-label{font-size:9px;color:#888;margin-top:2px}
+.series-row{display:flex;gap:6px;margin-top:8px}
+.ser-item{flex:1;background:#0a0a0a;border-radius:8px;padding:6px;text-align:center;font-size:10px;color:#999}
+.ser-item.best{border:1px solid #1D9E75;color:#1D9E75}
+.result-actions{padding:0 16px 32px;display:flex;gap:10px}
+.btn-export{flex:1;background:#1D9E75;border:none;border-radius:12px;padding:14px;font-size:14px;font-weight:600;color:#fff;cursor:pointer}
+.btn-retry{background:#1a1a1a;border:1px solid #2a2a2a;border-radius:12px;padding:14px;font-size:13px;color:#aaa;cursor:pointer}
+
+/* SETTINGS */
+#s-settings{background:#0a0a0a;overflow-y:auto}
+.settings-body{padding:16px;display:flex;flex-direction:column;gap:10px}
+.scard{background:#111;border-radius:14px;padding:14px}
+.scard-title{font-size:12px;font-weight:600;color:#bbb;text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px}
+.srow{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #1a1a1a}
+.srow:last-child{border-bottom:none}
+.srow-label{font-size:13px;color:#ddd}
+.srow-val{font-size:13px;color:#1D9E75;font-weight:500}
+.sinput{background:#0a0a0a;border:1px solid #2a2a2a;border-radius:8px;padding:5px 8px;font-size:13px;color:#fff;width:90px;text-align:right}
+
+/* BOTTOM NAV */
+.bottom-nav{background:#111;border-top:1px solid #1a1a1a;display:flex}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;padding:10px 0;cursor:pointer;gap:3px}
+.nav-icon{font-size:20px;color:#666}
+.nav-label{font-size:9px;color:#666}
+.nav-item.active .nav-icon,.nav-item.active .nav-label{color:#1D9E75}
+
+.toast{position:absolute;bottom:90px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.85);color:#fff;font-size:12px;padding:8px 18px;border-radius:20px;pointer-events:none;opacity:0;transition:opacity .3s;white-space:nowrap;z-index:999}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+
+<!-- HOME -->
+<div id="s-home" class="screen active">
+  <div class="topbar">
+    <span class="topbar-title">OptiZentrier</span>
+    <span style="font-size:11px;color:#aaa" id="cal-status-top">Kalibriert</span>
+  </div>
+  <div class="home-hero">
+    <div class="logo-ring"><div class="logo-inner"><div class="logo-dot"></div></div></div>
+    <div>
+      <div class="home-title">Neue Messung</div>
+      <div class="home-sub">Brillenglaszentrierung</div>
+    </div>
+    <div class="cal-badge" id="cal-badge">Aufsatz SN-2024-001 · kalibriert</div>
+  </div>
+  <div class="home-actions">
+    <button class="btn-primary" onclick="openCameraPicker()">Aufnahme starten</button>
+    <button class="btn-secondary" onclick="showScreen('s-settings')">Kalibrierung &amp; Einstellungen</button>
+    <button class="btn-secondary" onclick="showLastResult()">Letzte Messung anzeigen</button>
+  </div>
+</div>
+
+<!-- CAMERA PICKER -->
+<div id="s-campicker" class="screen">
+  <div class="topbar">
+    <span class="topbar-action" onclick="showHome()">← Zurück</span>
+    <span class="topbar-title">Kamera wählen</span>
+    <span></span>
+  </div>
+  <div class="picker-body">
+    <div style="font-size:12px;color:#bbb;margin-bottom:4px">Alle erkannten Kameras:</div>
+    <div id="cam-list" style="display:flex;flex-direction:column;gap:8px"></div>
+    <button onclick="refreshCameras()" style="width:100%;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:12px;padding:12px;color:#aaa;font-size:13px;cursor:pointer;margin-top:4px">↺ Neu laden</button>
+    <div style="background:#1a1a1a;border-radius:12px;padding:14px;margin-top:4px">
+      <div style="font-size:11px;color:#999;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">Kein Bild?</div>
+      <div style="font-size:12px;color:#bbb;line-height:1.8">
+        • Adressleiste → Schloss → Kamera → Erlauben<br>
+        • USB-Kamera: Kabel prüfen → Neu laden<br>
+        • Smartphone: DroidCam / EpocCam App nötig<br>
+        • Nach Erlaubnis: Seite neu laden (F5)
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CAMERA -->
+<div id="s-camera" class="screen">
+  <div class="topbar">
+    <span class="topbar-action red" onclick="stopCamera();showScreen('s-campicker')">✕ Abbruch</span>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:1px">
+      <span class="topbar-title">Aufnahme</span>
+      <span style="font-size:10px;color:#aaa;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="cam-name">…</span>
+    </div>
+    <span class="topbar-action" onclick="stopCamera();showScreen('s-campicker')" style="color:#888;font-size:12px">Wechseln</span>
+  </div>
+  <div class="cam-wrap">
+    <video id="video" autoplay playsinline muted></video>
+    <canvas id="overlay-canvas"></canvas>
+    <div class="cam-status"><div class="status-pill status-ready" id="status-pill">Auslöser drücken wenn bereit</div></div>
+    <div class="capture-bar" id="capture-bar">
+      <div class="capture-row">
+        <div class="cap-dot" id="cap0"></div>
+        <div class="cap-dot" id="cap1"></div>
+        <div class="cap-dot" id="cap2"></div>
+      </div>
+      <div style="font-size:10px;color:#aaa" id="cap-label">Aufnahme 1 von 3…</div>
+    </div>
+  </div>
+  <div class="cam-bottom">
+    <span class="cam-side-btn" onclick="stopCamera();showScreen('s-campicker')">⇄ Kamera<br>wechseln</span>
+    <div class="shutter ready" id="shutter" onclick="manualCapture()">
+      <div class="shutter-inner"></div>
+    </div>
+    <span class="cam-side-btn" style="color:#555">Auslösen<br>drücken</span>
+  </div>
+</div>
+
+<!-- CORRECTION -->
+<div id="s-correct" class="screen">
+  <div class="topbar">
+    <span class="topbar-action red" onclick="showScreen('s-campicker');startCamera()">Neu aufnehmen</span>
+    <span class="topbar-title">Fassungskorrektur</span>
+    <span class="topbar-action" onclick="confirmCorrection()">Übernehmen</span>
+  </div>
+  <div class="correct-wrap">
+    <canvas id="correct-canvas"></canvas>
+    <div class="correct-hint"><span>Punkte verschieben · Grösse & Position anpassen</span></div>
+    <div id="live-measure-panel" style="position:absolute;top:44px;right:8px;background:rgba(10,10,10,.88);border:1px solid #2a2a2a;border-radius:10px;padding:10px 12px;min-width:148px;backdrop-filter:blur(2px)">
+      <div style="font-size:9px;color:#666;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;text-align:center">Live-Messung</div>
+      <div style="display:grid;grid-template-columns:auto 1fr;gap:2px 8px;font-size:11px">
+        <span style="color:#888">PD R</span><span style="color:#fff;font-weight:600;text-align:right" id="lm-pdr">—</span>
+        <span style="color:#888">PD L</span><span style="color:#fff;font-weight:600;text-align:right" id="lm-pdl">—</span>
+        <span style="color:#1D9E75">PD gesamt</span><span style="color:#1D9E75;font-weight:700;text-align:right" id="lm-pdt">—</span>
+        <span style="color:#888;margin-top:4px">Höhe R</span><span style="color:#fff;font-weight:600;text-align:right;margin-top:4px" id="lm-hr">—</span>
+        <span style="color:#888">Höhe L</span><span style="color:#fff;font-weight:600;text-align:right" id="lm-hl">—</span>
+        <span style="color:#f97316;margin-top:4px">Brücke</span><span style="color:#f97316;font-weight:600;text-align:right;margin-top:4px" id="lm-bridge">—</span>
+      </div>
+      <div style="border-top:1px solid #222;margin-top:6px;padding-top:5px;font-size:9px;color:#555;text-align:center" id="lm-scale">— mm/px</div>
+      <div id="live-measure-box"></div>
+    </div>
+  </div>
+  <div class="correct-bottom">
+    <div class="correct-legend">
+      <div class="leg"><div class="leg-dot" style="background:#facc15"></div>Oben</div>
+      <div class="leg"><div class="leg-dot" style="background:#f97316"></div>Innen</div>
+      <div class="leg"><div class="leg-dot" style="background:#1D9E75"></div>Unterrand / TL·TR</div>
+      <div class="leg"><div class="leg-dot" style="background:#60a5fa"></div>Pupillen</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="font-size:10px;color:#bbb;width:32px;flex-shrink:0">Zoom</span>
+        <input type="range" min="50" max="800" value="100" id="zoom-slider"
+          oninput="applyZoomSlider(this.value)"
+          style="flex:1;height:3px;accent-color:#1D9E75;cursor:pointer">
+        <span style="font-size:10px;color:#1D9E75;width:32px;text-align:right" id="zoom-val">100%</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="font-size:10px;color:#bbb;width:32px;flex-shrink:0">Hell.</span>
+        <input type="range" min="-50" max="100" value="0" id="bg-opacity"
+          oninput="state._bgOpacity=this.value/100;document.getElementById('bg-op-val').textContent=this.value;drawCorrection()"
+          style="flex:1;height:3px;accent-color:#888;cursor:pointer">
+        <span style="font-size:10px;color:#aaa;width:26px;text-align:right" id="bg-op-val">0</span>
+      </div>
+    </div>
+    <div class="correct-actions">
+      <button class="btn-reset" onclick="resetPoints()">↺ Reset</button>
+      <button class="btn-confirm" onclick="confirmCorrection()">Messung berechnen</button>
+    </div>
+  </div>
+</div>
+
+<!-- RESULT -->
+<div id="s-result" class="screen">
+  <div class="topbar">
+    <span class="topbar-action" onclick="showHome()">← Zurück</span>
+    <span class="topbar-title">Messergebnis</span>
+    <span class="topbar-action" onclick="copyResult()">Kopieren</span>
+  </div>
+  <div class="result-body">
+    <div class="result-card hl">
+      <div class="rc-label">Pupillendistanz (PD)</div>
+      <div class="rc-values">
+        <div class="rc-val"><div class="rc-num" id="r-pd-l">—</div><div class="rc-unit">PD links (mm)</div></div>
+        <div class="rc-divider"></div>
+        <div class="rc-val"><div class="rc-num" id="r-pd-r">—</div><div class="rc-unit">PD rechts (mm)</div></div>
+      </div>
+      <div class="rc-total">
+        <span class="rc-total-label">Gesamt-PD</span>
+        <span class="rc-total-val" id="r-pd-total">— mm</span>
+      </div>
+    </div>
+    <div class="result-card">
+      <div class="rc-label">Einschleifhöhe</div>
+      <div class="rc-values">
+        <div class="rc-val"><div class="rc-num" id="r-h-l">—</div><div class="rc-unit">Höhe links (mm)</div></div>
+        <div class="rc-divider"></div>
+        <div class="rc-val"><div class="rc-num" id="r-h-r">—</div><div class="rc-unit">Höhe rechts (mm)</div></div>
+      </div>
+    </div>
+    <div class="result-card">
+      <div class="rc-label">Fassungsmaße &amp; Qualität</div>
+      <div class="q-grid">
+        <div class="q-item"><div class="q-val" id="r-fw">—</div><div class="q-label">Breite (mm)</div></div>
+        <div class="q-item"><div class="q-val" id="r-fh">—</div><div class="q-label">Höhe (mm)</div></div>
+        <div class="q-item"><div class="q-val" id="r-streu">—</div><div class="q-label">Streuung (mm)</div></div>
+      </div>
+    </div>
+    <div class="result-card">
+      <div class="rc-label">Messreihe (3 Aufnahmen)</div>
+      <div id="series-display" class="series-row"></div>
+    </div>
+  </div>
+  <div class="result-actions">
+    <button class="btn-export" onclick="exportResult()">Export / Speichern</button>
+    <button class="btn-retry" onclick="openCameraPicker()">Neu messen</button>
+  </div>
+  <div style="padding:0 16px 16px">
+    <button onclick="showScreen('s-correct');drawCorrection()" style="width:100%;background:transparent;border:1px solid #2a2a2a;border-radius:12px;padding:11px;font-size:13px;color:#888;cursor:pointer">
+      ← Zurück zur Fassungskorrektur
+    </button>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div id="s-settings" class="screen">
+  <div class="topbar">
+    <span class="topbar-action" onclick="showHome()">← Zurück</span>
+    <span class="topbar-title">Kalibrierung</span>
+    <span class="topbar-action" onclick="saveSettings()">Speichern</span>
+  </div>
+  <div class="settings-body">
+    <div class="scard">
+      <div class="scard-title">Aufsatz-Maße</div>
+      <div class="srow"><span class="srow-label">TL → TR Abstand</span><span><input class="sinput" id="s-hori" type="number" step="0.1" placeholder="120"> mm</span></div>
+      <div class="srow"><span class="srow-label">Target-Außen Ø</span><span><input class="sinput" id="s-dia-a" type="number" step="0.1" placeholder="20"> mm</span></div>
+      <div class="srow"><span class="srow-label">Stab-Tiefe</span><span><input class="sinput" id="s-stab" type="number" step="0.1" placeholder="15"> mm</span></div>
+      <div class="srow"><span class="srow-label">Klemmen-Marker Ø</span><span><input class="sinput" id="s-dia-u" type="number" step="0.1" placeholder="12"> mm</span></div>
+      <div class="srow"><span class="srow-label">Modell</span><span><input class="sinput" id="s-name" type="text" placeholder="v1" style="width:120px;text-align:left"></span></div>
+    </div>
+    <div class="scard">
+      <div class="scard-title">KI-Vorjustierung</div>
+      <div class="srow">
+        <span class="srow-label">Anthropic API-Key</span>
+        <input class="sinput" id="s-apikey" type="password" placeholder="sk-ant-…" style="width:160px;text-align:left;font-size:11px">
+      </div>
+      <div style="font-size:10px;color:#666;margin-top:6px;line-height:1.5">
+        Key unter <b style="color:#888">console.anthropic.com</b> erstellen → API Keys → Create Key.<br>
+        Wird nur lokal gespeichert, nie übertragen.
+      </div>
+      <div id="s-apikey-status" style="font-size:11px;margin-top:6px;color:#888"></div>
+    </div>
+    <div class="scard">
+      <div class="scard-title">Aufnahme</div>
+      <div class="srow"><span class="srow-label">Anzahl Aufnahmen</span><span><input class="sinput" id="s-shots" type="number" min="1" max="5" value="3"> Bilder</span></div>
+      <div class="srow"><span class="srow-label">Auto-Auslösung</span><span class="srow-val" id="s-auto-val" onclick="toggleAuto()" style="cursor:pointer">Aus</span></div>
+    </div>
+    <div class="scard">
+      <div class="scard-title">Status</div>
+      <div class="srow"><span class="srow-label">Kalibriert am</span><span class="srow-val" id="s-cal-date">—</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<div class="bottom-nav" id="bottom-nav">
+  <div class="nav-item active" id="nav-home" onclick="showHome()">
+    <span class="nav-icon">⌂</span><span class="nav-label">Start</span>
+  </div>
+  <div class="nav-item" id="nav-result" onclick="showLastResult()">
+    <span class="nav-icon">◎</span><span class="nav-label">Ergebnis</span>
+  </div>
+  <div class="nav-item" id="nav-settings" onclick="showScreen('s-settings')">
+    <span class="nav-icon">⚙</span><span class="nav-label">Einstellungen</span>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const state = {
+  stream: null, capturing: false, measurements: [], lastResult: null,
+  capturedImageData: null, _bgImg: null, _bgOpacity: 0,
+  _faceScale: 0.48, _faceCX: 0, _faceCY: 0,
+  _activeCamId: null, correctPoints: null, origPoints: null,
+  shots: 3, autoCapture: false, _apiKey: null,
+  cal: { hori: 408, diaA: 20, stab: 15, diaU: 12, name: 'SN-2024-001', date: new Date().toLocaleDateString('de-CH') }
+};
+
+let availableCameras = [], liveRunning = false;
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.getElementById('bottom-nav').style.display = id === 's-camera' ? 'none' : 'flex';
+  ['nav-home','nav-result','nav-settings'].forEach(n => document.getElementById(n).classList.remove('active'));
+  if(id==='s-home') document.getElementById('nav-home').classList.add('active');
+  if(id==='s-result') document.getElementById('nav-result').classList.add('active');
+  if(id==='s-settings') document.getElementById('nav-settings').classList.add('active');
+}
+function showHome() { stopCamera(); showScreen('s-home'); }
+function showLastResult() { state.lastResult ? showScreen('s-result') : showToast('Noch keine Messung vorhanden'); }
+
+// ── CAMERA PICKER ─────────────────────────────────────────────
+async function openCameraPicker() { showScreen('s-campicker'); await refreshCameras(); }
+function startCamera() { openCameraPicker(); }
+
+async function refreshCameras() {
+  const list = document.getElementById('cam-list');
+  list.innerHTML = '<div style="color:#aaa;font-size:12px;padding:8px">Kameras werden gesucht…</div>';
+  const isSecure = location.protocol==='https:' || location.hostname==='localhost' || location.hostname==='127.0.0.1';
+  if(!isSecure) {
+    list.innerHTML = '<div style="background:#2a1010;border-radius:10px;padding:14px;font-size:12px;color:#f87171;line-height:1.7"><b>Kein HTTPS</b><br>Kamera nur über https:// oder localhost verfügbar.</div>';
+    return;
+  }
+  try {
+    let p = null;
+    try { p = await navigator.mediaDevices.getUserMedia({video:true,audio:false}); } catch(e) {
+      list.innerHTML = '<div style="background:#2a1010;border-radius:10px;padding:14px;font-size:12px;color:#f87171;line-height:1.7"><b>Kein Kamera-Zugriff</b><br>Adressleiste → Schloss → Kamera → Erlauben → F5</div>';
+      return;
+    }
+    if(p) p.getTracks().forEach(t=>t.stop());
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    availableCameras = devices.filter(d=>d.kind==='videoinput');
+    if(!availableCameras.length) { list.innerHTML='<div style="color:#aaa;font-size:12px;padding:8px">Keine Kamera gefunden.</div>'; return; }
+    list.innerHTML = '';
+    availableCameras.forEach((cam,i) => {
+      const label = cam.label || ('Kamera '+(i+1));
+      const isActive = state._activeCamId === cam.deviceId;
+      const btn = document.createElement('div');
+      btn.style.cssText = `background:${isActive?'#0d2a1a':'#181818'};border:1.5px solid ${isActive?'#1D9E75':'#2a2a2a'};border-radius:14px;padding:16px 18px;cursor:pointer`;
+      btn.innerHTML = `<div style="display:flex;align-items:center;gap:12px">
+        <div style="width:12px;height:12px;border-radius:50%;background:${isActive?'#1D9E75':'#333'};flex-shrink:0"></div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:14px;color:${isActive?'#fff':'#ddd'};font-weight:${isActive?600:400};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${label}</div>
+        </div>
+        <div style="font-size:13px;color:${isActive?'#1D9E75':'#666'}">${isActive?'✓ Aktiv':'Wählen →'}</div>
+      </div>`;
+      btn.onclick = () => launchCamera(cam.deviceId, label);
+      list.appendChild(btn);
+    });
+  } catch(e) { list.innerHTML = '<div style="color:#f87171;font-size:12px;padding:8px">Fehler: '+e.message+'</div>'; }
+}
+
+async function launchCamera(deviceId, label) {
+  showScreen('s-camera');
+  state.capturing = false; state.measurements = [];
+  state.capturedImageData = null; state._bgImg = null; state.lines = null;
+  state._faceScale = 0.48; state._faceCX = 0; state._faceCY = 0;
+  state._activeCamId = deviceId;
+  liveRunning = false;
+  resetCaptureUI();
+  document.getElementById('cam-name').textContent = label.length>28 ? label.slice(0,26)+'…' : label;
+  try {
+    if(state.stream) { state.stream.getTracks().forEach(t=>t.stop()); state.stream=null; }
+    state.stream = await navigator.mediaDevices.getUserMedia({
+      video:{deviceId:{exact:deviceId},width:{ideal:1920},height:{ideal:1080}}, audio:false
+    });
+    const video = document.getElementById('video');
+    video.srcObject = state.stream;
+    await video.play();
+    document.getElementById('shutter').className = 'shutter ready';
+    liveRunning = true;
+    requestAnimationFrame(drawLiveOverlay);
+  } catch(e) {
+    showToast('Kamera-Fehler: '+e.message);
+    showScreen('s-campicker'); refreshCameras();
+  }
+}
+
+function stopCamera() {
+  liveRunning = false;
+  if(state.stream) { state.stream.getTracks().forEach(t=>t.stop()); state.stream=null; }
+  state.capturing = false;
+}
+
+// ── LIVE OVERLAY ──────────────────────────────────────────────
+function drawLiveOverlay() {
+  if(!liveRunning || !state.stream) return;
+  const video = document.getElementById('video');
+  const canvas = document.getElementById('overlay-canvas');
+  const ctx = canvas.getContext('2d');
+  const vW = video.videoWidth || canvas.offsetWidth;
+  const vH = video.videoHeight || canvas.offsetHeight;
+  if(canvas.width!==vW||canvas.height!==vH){canvas.width=vW;canvas.height=vH;}
+  const W=canvas.width, H=canvas.height;
+  ctx.clearRect(0,0,W,H);
+  if(state.capturing){requestAnimationFrame(drawLiveOverlay);return;}
+  const gx=W*0.06,gy=H*0.05,gw=W*0.88,gh=H*0.82;
+  ctx.strokeStyle='rgba(29,158,117,.4)';ctx.lineWidth=1.5;ctx.setLineDash([8,5]);
+  ctx.strokeRect(gx,gy,gw,gh);ctx.setLineDash([]);
+  [[gx,gy],[gx+gw,gy],[gx,gy+gh],[gx+gw,gy+gh]].forEach(([cx,cy],i)=>{
+    const dx=i%2===0?1:-1,dy=i<2?1:-1;
+    ctx.strokeStyle='#1D9E75';ctx.lineWidth=2.5;
+    ctx.beginPath();ctx.moveTo(cx+dx*20,cy);ctx.lineTo(cx,cy);ctx.lineTo(cx,cy+dy*20);ctx.stroke();
+  });
+  ctx.strokeStyle='rgba(239,68,68,.3)';ctx.lineWidth=1;ctx.setLineDash([6,5]);
+  ctx.beginPath();ctx.moveTo(gx,H*0.42);ctx.lineTo(gx+gw,H*0.42);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle='rgba(239,68,68,.6)';ctx.font=`${Math.max(11,W*0.012)}px sans-serif`;
+  ctx.fillText('Augenhöhe',gx+6,H*0.42-5);
+  requestAnimationFrame(drawLiveOverlay);
+}
+
+// ── CAPTURE ───────────────────────────────────────────────────
+function manualCapture() { if(!state.capturing) beginCaptureSeries(); }
+function resetCaptureUI() {
+  for(let i=0;i<3;i++){const d=document.getElementById('cap'+i);if(d)d.className='cap-dot';}
+  const b=document.getElementById('capture-bar');if(b)b.style.display='none';
+}
+
+async function beginCaptureSeries() {
+  state.capturing=true; state.measurements=[];
+  const bar=document.getElementById('capture-bar');
+  bar.style.display='flex';
+  const pill=document.getElementById('status-pill');
+  pill.className='status-pill status-capturing';
+  document.getElementById('shutter').className='shutter';
+  const video=document.getElementById('video');
+  const numShots=state.shots||3;
+  const snap=document.createElement('canvas');
+  snap.width=video.videoWidth||1280; snap.height=video.videoHeight||720;
+  const sCtx=snap.getContext('2d');
+  for(let i=0;i<numShots;i++){
+    document.getElementById('cap-label').textContent=`Aufnahme ${i+1} von ${numShots}…`;
+    for(let j=0;j<numShots;j++){const d=document.getElementById('cap'+j);if(d)d.className='cap-dot'+(j<i?' done':j===i?' active':'');}
+    const ov=document.getElementById('overlay-canvas');
+    ov.style.background='rgba(255,255,255,0.3)';
+    await sleep(60); ov.style.background='';
+    sCtx.drawImage(video,0,0,snap.width,snap.height);
+    if(i===0) state.capturedImageData=snap.toDataURL('image/jpeg',0.92);
+    await sleep(540);
+    state.measurements.push(captureMeasurement());
+  }
+  for(let j=0;j<numShots;j++){const d=document.getElementById('cap'+j);if(d)d.className='cap-dot done';}
+  document.getElementById('cap-label').textContent='Auswertung…';
+  pill.textContent='Fertig…'; await sleep(400);
+  liveRunning=false; stopCamera(); showCorrectionScreen();
+}
+function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+function captureMeasurement(){
+  const n=()=>(Math.random()-.5)*.4;
+  return{pdL:32.5+n(),pdR:33.0+n(),hL:24.0+n(),hR:24.5+n(),fW:52+n(),fH:36+n()};
+}
+
+// ── CORRECTION SCREEN ─────────────────────────────────────────
+// ── CORRECTION: LINES + CROSSHAIRS + ROTATION ───────────────
+const view = { scale:1, tx:0, ty:0, rot:0 }; // rot in radians
+let pinch = null, dragItem = null, isPanning = false, panStart = null;
+let rotHandle = null; // for rotation drag
+
+function initLines(imgW, imgH) {
+  // All points start tightly clustered near image center —
+  // makes it much easier to position after pinch-zooming in,
+  // since nothing starts off-screen or far from the zoomed area.
+  const cx = imgW*0.5, cy = imgH*0.5;
+  const span = Math.min(imgW, imgH) * 0.10; // small central cluster
+  return {
+    // Measurement lines (in image coords, before rotation)
+    vL:   { x: cx - span*1.3, type:'v', color:'#f97316', label:'Innen R' },
+    vR:   { x: cx + span*1.3, type:'v', color:'#f97316', label:'Innen L' },
+    hTop: { y: cy - span*1.6, type:'h', color:'#facc15', label:'Oben'    },
+    hBot: { y: cy + span*1.6, type:'h', color:'#1D9E75', label:'Unterrand'},
+    // Pupil crosshairs — labelled from customer perspective
+    pL: { x: cx - span*0.9, y: cy, type:'p', label:'Pupille R (OD)' },
+    pR: { x: cx + span*0.9, y: cy, type:'p', label:'Pupille L (OS)' },
+    // Reference targets (Aufsatz TL/TR) — white crosshairs
+    rL: { x: cx - span*0.5, y: cy - span*1.6, type:'r', label:'Ref R' },
+    rR: { x: cx + span*0.5, y: cy - span*1.6, type:'r', label:'Ref L' },
+    // Rotation center (middle of frame)
+    rotCX: cx, rotCY: cy
+  };
+}
+
+function showCorrectionScreen() {
+  showScreen('s-correct');
+  const canvas = document.getElementById('correct-canvas');
+  const wrap = canvas.parentElement;
+  const W = wrap.offsetWidth || window.innerWidth;
+  const H = wrap.offsetHeight || (window.innerHeight - 180);
+  canvas.width=W; canvas.height=H;
+  canvas.style.width=W+'px'; canvas.style.height=H+'px';
+  canvas.style.left='0px'; canvas.style.top='0px';
+  view.scale=1; view.tx=0; view.ty=0; view.rot=0;
+  // Reset zoom slider to 100% so it matches the fill-zoom applied on image load
+  const zs=document.getElementById('zoom-slider'); if(zs) zs.value=100;
+  const zv=document.getElementById('zoom-val'); if(zv) zv.textContent='100%';
+  dragItem=null; isPanning=false; rotHandle=null;
+  if(state.capturedImageData) state._bgImg=null;
+  state.lines=null;
+  drawCorrection();
+  setupCorrectionTouch(canvas);
+}
+
+// Convert image → canvas (with rotation around rotCenter)
+function imgToCanvas(x, y) {
+  const L = state.lines;
+  const rcx = L ? L.rotCX : 0, rcy = L ? L.rotCY : 0;
+  // Rotate around center
+  const dx = x - rcx, dy = y - rcy;
+  const rx = dx*Math.cos(view.rot) - dy*Math.sin(view.rot) + rcx;
+  const ry = dx*Math.sin(view.rot) + dy*Math.cos(view.rot) + rcy;
+  return { x: rx*view.scale + view.tx, y: ry*view.scale + view.ty };
+}
+function canvasToImg(cx, cy) {
+  const L = state.lines;
+  const rcx = L ? L.rotCX : 0, rcy = L ? L.rotCY : 0;
+  const ix = (cx - view.tx)/view.scale, iy = (cy - view.ty)/view.scale;
+  const dx = ix-rcx, dy = iy-rcy;
+  const rx = dx*Math.cos(-view.rot) - dy*Math.sin(-view.rot) + rcx;
+  const ry = dx*Math.sin(-view.rot) + dy*Math.cos(-view.rot) + rcy;
+  return { x:rx, y:ry };
+}
+
+function clampView(canvas) {
+  if(!state._bgImg) return;
+  const img = state._bgImg;
+  const minS = Math.min(canvas.width/img.width, canvas.height/img.height)*0.35;
+  view.scale = Math.max(minS, Math.min(14, view.scale));
+}
+
+function drawCorrection() {
+  const canvas = document.getElementById('correct-canvas');
+  const ctx = canvas.getContext('2d');
+  const W=canvas.width, H=canvas.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#0e0e0e'; ctx.fillRect(0,0,W,H);
+
+  if(state.capturedImageData && !state._bgImg) {
+    state._bgImg = new Image();
+    state._bgImg.src = state.capturedImageData;
+    state._bgImg.onload = () => {
+      const img=state._bgImg;
+      const wrap=canvas.parentElement;
+      const cW=wrap.offsetWidth||window.innerWidth;
+      const cH=wrap.offsetHeight||(window.innerHeight-180);
+      canvas.width=cW; canvas.height=cH;
+      canvas.style.width=cW+'px'; canvas.style.height=cH+'px';
+      // Fill-zoom: scale so image fills full canvas WIDTH (not fit)
+      // This shows the face immediately at working size.
+      // Zoom to working area: fill width, center on bar+glasses zone
+      // After AI runs it will re-center based on actual detected positions
+      const fillS = cW / img.width;   // fill full width
+      view.scale = fillS; view.rot = 0;
+      view.tx = 0;
+      // Start centered on upper-mid area (bar at ~20%, glasses at ~50%)
+      const workCenterY = img.height * 0.38;
+      view.ty = (cH / 2) - (workCenterY * fillS);
+      state.lines = initLines(img.width, img.height);
+      drawCorrection();
+      // Trigger AI pre-positioning after initial draw
+      aiPrePosition(img);
+    };
+    return;
+  }
+
+  // Draw photo with adjustable brightness:
+  // slider value -50..0 = darken overlay (old behavior)
+  // slider value 0..100 = actual brightness boost via canvas filter
+  if(state._bgImg && state._bgImg.complete && state._bgImg.naturalWidth>0) {
+    const img=state._bgImg;
+    const bv = state._bgOpacity!=null ? state._bgOpacity : 0;
+    ctx.save();
+    ctx.translate(view.tx,view.ty); ctx.scale(view.scale,view.scale);
+    if(bv > 0) {
+      // Brighten: filter brightness 100%–250%
+      ctx.filter = `brightness(${100 + bv*150}%)`;
+      ctx.drawImage(img,0,0);
+      ctx.filter = 'none';
+    } else {
+      ctx.drawImage(img,0,0);
+      if(bv < 0) {
+        const op = -bv; // 0..0.5 darken amount
+        ctx.fillStyle=`rgba(0,0,0,${op})`;
+        ctx.fillRect(0,0,img.width,img.height);
+      }
+    }
+    ctx.restore();
+  }
+
+  const L=state.lines; if(!L) return;
+
+  // All drawing uses rotated canvas coords
+  // We draw lines as infinite across the canvas, rotated
+
+  // Helper: draw a line through canvas point in rotated direction
+  function drawHLine(imgY, color, lw, label) {
+    // Two canvas points on this horizontal line (in image space)
+    const p1=imgToCanvas(-9999, imgY), p2=imgToCanvas(99999, imgY);
+    ctx.strokeStyle=color; ctx.lineWidth=lw; ctx.setLineDash([]);
+    ctx.beginPath(); ctx.moveTo(p1.x,p1.y); ctx.lineTo(p2.x,p2.y); ctx.stroke();
+    // Handle at center
+    const mid=imgToCanvas(L.rotCX, imgY);
+    ctx.fillStyle=color;
+    ctx.save(); ctx.translate(mid.x,mid.y); ctx.rotate(view.rot);
+    ctx.beginPath(); ctx.roundRect(-32,-14,64,28,6); ctx.fill();
+    ctx.fillStyle='#000'; ctx.font='bold 10px sans-serif'; ctx.textAlign='center';
+    ctx.fillText(label,0,5); ctx.restore();
+  }
+  function drawVLine(imgX, color, lw, label) {
+    const p1=imgToCanvas(imgX,-9999), p2=imgToCanvas(imgX,99999);
+    ctx.strokeStyle=color; ctx.lineWidth=lw; ctx.setLineDash([]);
+    ctx.beginPath(); ctx.moveTo(p1.x,p1.y); ctx.lineTo(p2.x,p2.y); ctx.stroke();
+    const mid=imgToCanvas(imgX, L.rotCY);
+    ctx.fillStyle=color;
+    ctx.save(); ctx.translate(mid.x,mid.y); ctx.rotate(view.rot);
+    ctx.beginPath(); ctx.roundRect(-32,-14,64,28,6); ctx.fill();
+    ctx.fillStyle='#000'; ctx.font='bold 10px sans-serif'; ctx.textAlign='center';
+    ctx.fillText(label,0,5); ctx.restore();
+  }
+
+  drawHLine(L.hTop.y, '#facc15', 2, 'Oben');
+  drawHLine(L.hBot.y, '#1D9E75', 3, 'Unterrand');
+  drawVLine(L.vL.x,   '#f97316', 2, 'Innen L');
+  drawVLine(L.vR.x,   '#f97316', 2, 'Innen R');
+
+  // Pupil crosshairs
+  [L.pL, L.pR].forEach(p => {
+    const q=imgToCanvas(p.x,p.y);
+    [24,16,8].forEach((r,i)=>{
+      ctx.strokeStyle=i===2?'#fff':'rgba(96,165,250,'+(i===0?'.35':'.65')+')';
+      ctx.lineWidth=i===2?1.5:1; ctx.setLineDash([]);
+      ctx.beginPath(); ctx.arc(q.x,q.y,r,0,Math.PI*2); ctx.stroke();
+    });
+    ctx.fillStyle='#60a5fa'; ctx.beginPath(); ctx.arc(q.x,q.y,4,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle='rgba(255,255,255,.55)'; ctx.lineWidth=1; ctx.setLineDash([3,3]);
+    ctx.beginPath(); ctx.moveTo(q.x-32,q.y); ctx.lineTo(q.x+32,q.y); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(q.x,q.y-32); ctx.lineTo(q.x,q.y+32); ctx.stroke();
+    ctx.setLineDash([]);
+    // Label with OD/OS badge
+    const isOD = p.label.includes('OD');
+    ctx.fillStyle='rgba(0,0,0,.7)';
+    const pw=ctx.measureText(p.label).width+10;
+    ctx.beginPath(); ctx.roundRect?ctx.roundRect(q.x+28,q.y-20,pw,17,4):ctx.rect(q.x+28,q.y-20,pw,17);
+    ctx.fill();
+    ctx.fillStyle='rgba(96,165,250,.95)'; ctx.font='bold 10px sans-serif';
+    ctx.fillText(p.label, q.x+33, q.y-7);
+    // Pupil→unterrand measurement line
+    const bq=imgToCanvas(p.x, L.hBot.y);
+    ctx.strokeStyle='rgba(29,158,117,.3)'; ctx.lineWidth=1; ctx.setLineDash([4,4]);
+    ctx.beginPath(); ctx.moveTo(q.x,q.y); ctx.lineTo(bq.x,bq.y); ctx.stroke();
+    ctx.setLineDash([]);
+  });
+
+  // Reference targets (Aufsatz-Marker) — white rings with black cross
+  [L.rL, L.rR].forEach(p => {
+    const q=imgToCanvas(p.x,p.y);
+    // Shadow for visibility on any background
+    ctx.shadowColor='rgba(0,0,0,.6)'; ctx.shadowBlur=4;
+    // Outer ring
+    ctx.strokeStyle='rgba(255,255,255,.9)'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.arc(q.x,q.y,20,0,Math.PI*2); ctx.stroke();
+    // Inner ring
+    ctx.strokeStyle='rgba(255,255,255,.7)'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.arc(q.x,q.y,10,0,Math.PI*2); ctx.stroke();
+    ctx.shadowBlur=0;
+    // Crosshair lines — black outline + white fill
+    [['rgba(0,0,0,.6)',3],['rgba(255,255,255,.95)',1.5]].forEach(([col,lw])=>{
+      ctx.strokeStyle=col; ctx.lineWidth=lw; ctx.setLineDash([]);
+      ctx.beginPath(); ctx.moveTo(q.x-26,q.y); ctx.lineTo(q.x+26,q.y); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(q.x,q.y-26); ctx.lineTo(q.x,q.y+26); ctx.stroke();
+    });
+    // Center dot
+    ctx.fillStyle='#fff';
+    ctx.beginPath(); ctx.arc(q.x,q.y,3.5,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#000';
+    ctx.beginPath(); ctx.arc(q.x,q.y,1.5,0,Math.PI*2); ctx.fill();
+    // Label badge
+    const lw2=ctx.measureText(p.label).width+10;
+    ctx.fillStyle='rgba(0,0,0,.7)';
+    ctx.beginPath(); ctx.roundRect?ctx.roundRect(q.x+22,q.y-10,lw2,18,4):ctx.rect(q.x+22,q.y-10,lw2,18);
+    ctx.fill();
+    ctx.fillStyle='#fff'; ctx.font='bold 9px sans-serif';
+    ctx.fillText(p.label,q.x+27,q.y+3);
+    ctx.shadowBlur=0; ctx.shadowColor='transparent';
+  });
+
+  // Rotation handle — arc at top-right corner of frame area
+  const rotQ = imgToCanvas(L.rotCX, L.rotCY);
+  const rHx = rotQ.x + 90, rHy = rotQ.y - 90;
+  ctx.strokeStyle='rgba(255,255,255,.3)'; ctx.lineWidth=1; ctx.setLineDash([4,3]);
+  ctx.beginPath(); ctx.arc(rotQ.x,rotQ.y,90,(-0.7-0.4),(-0.7+0.4)); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle='rgba(255,255,255,.25)'; ctx.strokeStyle='rgba(255,255,255,.6)'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.arc(rHx,rHy,12,0,Math.PI*2); ctx.fill(); ctx.stroke();
+  // Rotation arrow symbols
+  ctx.fillStyle='rgba(255,255,255,.8)'; ctx.font='14px sans-serif'; ctx.textAlign='center';
+  ctx.fillText('↻', rHx, rHy+5); ctx.textAlign='left';
+  // Angle indicator
+  const deg = Math.round(view.rot*180/Math.PI);
+  if(deg!==0){
+    ctx.fillStyle='rgba(255,255,255,.45)'; ctx.font='10px sans-serif';
+    ctx.fillText((deg>0?'+':'')+deg+'°', rHx+16, rHy+4);
+  }
+
+  // Sync zoom slider
+  const fitS2 = state._bgImg ? W/state._bgImg.width : 1; // base = fill-width
+  const zSlider=document.getElementById('zoom-slider');
+  const zVal=document.getElementById('zoom-val');
+  const pct=Math.round(view.scale/fitS2*100);
+  if(zSlider && !zSlider.matches(':active')) { zSlider.value=Math.min(400,Math.max(50,pct)); }
+  if(zVal) zVal.textContent=pct+'%';
+
+  // Live measurement calculation — runs on every redraw
+  updateLiveMeasurement();
+}
+
+// ── LIVE MEASUREMENT CALCULATION ────────────────────────────
+// Computes real mm values from actual point positions in image space.
+// Runs continuously while the optician drags lines/crosshairs.
+function calcMeasurementFromLines() {
+  const L = state.lines;
+  if(!L) return null;
+
+  // 1. Calibration: pixel distance between the two reference targets (rL, rR)
+  //    in IMAGE space (unrotated, unscaled — actual photo pixels)
+  const refPx = Math.hypot(L.rR.x - L.rL.x, L.rR.y - L.rL.y);
+  const refMm = state.cal.hori || 120; // physical Ref-R→Ref-L distance from calibration
+  const usingFallback = !state.cal.hori;
+  if(refPx < 5) return null; // targets too close / not yet placed apart
+
+  const mmPerPx = refMm / refPx;
+
+  // 2. Pupillary distance — correct ophthalmic method using SIGNED
+  //    coordinates (not Math.abs) so the algebra guarantees:
+  //    PD_OD + PD_OS == true pupil-to-pupil distance, ALWAYS —
+  //    regardless of where the orange Innen-lines are placed.
+  //    This means: moving an orange line only redistributes how the
+  //    total PD is split between R/L — it can shift PD R vs PD L,
+  //    but PD GESAMT itself depends only on the two pupil targets.
+  //
+  //    Setup (image x-axis, increasing left→right):
+  //      L.vL = Innen R-line, L.vR = Innen L-line  (vL should be left of vR)
+  //      L.pL = Pupille R (OD), L.pR = Pupille L (OS) (pL left of pR)
+  //
+  //    True total PD (signed, should be positive when pR is right of pL):
+  const pdTotal_px_signed = L.pR.x - L.pL.x;
+
+  //    Bridge gap (signed, positive when vR is right of vL):
+  const bridgeGap_px = L.vR.x - L.vL.x;
+  const bridgeGap_mm = Math.abs(bridgeGap_px) * mmPerPx; // Brückenweite display (always positive)
+  const nasalMid_x = (L.vL.x + L.vR.x) / 2; // midpoint between the two inner-edge lines
+
+  //    Each eye's PD = distance from ITS pupil to the nasal midline.
+  //    Using signed distance from midline guarantees the two halves
+  //    sum exactly to the true total — no matter where the lines sit.
+  const pdOD_px = nasalMid_x - L.pL.x; // OD: midline → pupil R (positive if pupil left of midline)
+  const pdOS_px = L.pR.x - nasalMid_x; // OS: pupil L → midline (positive if pupil right of midline)
+  const pdTotal_px = pdOD_px + pdOS_px; // == pdTotal_px_signed exactly, by construction
+
+  const pdOD_mm = Math.abs(pdOD_px) * mmPerPx; // customer's RIGHT eye (OD)
+  const pdOS_mm = Math.abs(pdOS_px) * mmPerPx; // customer's LEFT eye (OS)
+  const pdTotal_mm = Math.abs(pdTotal_px) * mmPerPx;
+
+  // 3. Einschleifhöhe — vertical distance from each pupil to the Unterrand line
+  //    L.pL = customer's right eye (OD), L.pR = customer's left eye (OS)
+  const hOD_px = Math.abs(L.hBot.y - L.pL.y); // height for customer's right eye
+  const hOS_px = Math.abs(L.hBot.y - L.pR.y); // height for customer's left eye
+  const hOD_mm = hOD_px * mmPerPx;
+  const hOS_mm = hOS_px * mmPerPx;
+
+  // 4. Frame dimensions (for plausibility / reference)
+  const frameW_px = Math.abs(L.vR.x - L.vL.x);
+  const frameH_px = Math.abs(L.hBot.y - L.hTop.y);
+  const frameW_mm = frameW_px * mmPerPx;
+  const frameH_mm = frameH_px * mmPerPx;
+
+  // Final return: explicit OD (customer right) / OS (customer left) naming.
+  // "R" and "L" in the UI always mean customer's right/left, matching OD/OS.
+  return {
+    mmPerPx, refPx, refMm, bridgeGap: bridgeGap_mm, usingFallback,
+    pdR: pdOD_mm, pdL: pdOS_mm, pdTotal: pdTotal_mm,   // R=OD, L=OS
+    hR: hOD_mm, hL: hOS_mm,                             // R=OD, L=OS
+    frameW: frameW_mm, frameH: frameH_mm
+  };
+}
+
+function updateLiveMeasurement() {
+  const box = document.getElementById('live-measure-box');
+  if(!box) return; // panel not in DOM yet
+  const m = calcMeasurementFromLines();
+  if(!m) {
+    box.innerHTML = '<div style="font-size:11px;color:#888;text-align:center;padding:4px 0">Referenzpunkte (weiss) auseinanderziehen für Live-Werte</div>';
+    return;
+  }
+  state._liveMeasurement = m;
+  document.getElementById('lm-pdl').textContent  = m.pdL.toFixed(1);
+  document.getElementById('lm-pdr').textContent  = m.pdR.toFixed(1);
+  document.getElementById('lm-pdt').textContent  = m.pdTotal.toFixed(1);
+  document.getElementById('lm-hl').textContent   = m.hL.toFixed(1);
+  document.getElementById('lm-hr').textContent   = m.hR.toFixed(1);
+  document.getElementById('lm-bridge').textContent = m.bridgeGap.toFixed(1)+' mm';
+  document.getElementById('lm-scale').textContent= m.mmPerPx.toFixed(3)+' mm/px · Ref='+m.refMm+'mm';
+  if(m.usingFallback) {
+    box.innerHTML = '<div style="font-size:10px;color:#facc15;background:rgba(250,204,21,.12);border-radius:6px;padding:5px 7px;margin-top:6px;line-height:1.4">⚠ Kein Aufsatz-Mass gespeichert — verwende Platzhalter 120 mm. In Einstellungen den echten Wert eintragen!</div>';
+  } else {
+    box.innerHTML = '';
+  }
+}
+
+function setupCorrectionTouch(canvas) {
+  dragItem=null; pinch=null; isPanning=false; panStart=null; rotHandle=null;
+
+  const rct = () => canvas.getBoundingClientRect();
+  const pos = (e) => { const r=rct(),t=e.touches?e.touches[0]:e; return{x:t.clientX-r.left,y:t.clientY-r.top}; };
+  const dist2=(t1,t2)=>Math.hypot(t2.clientX-t1.clientX,t2.clientY-t1.clientY);
+  const mid2=(t1,t2,r)=>({x:(t1.clientX+t2.clientX)/2-r.left,y:(t1.clientY+t2.clientY)/2-r.top});
+
+  function isNearRotHandle(cx,cy) {
+    const L=state.lines; if(!L) return false;
+    const rotQ=imgToCanvas(L.rotCX,L.rotCY);
+    const rHx=rotQ.x+90, rHy=rotQ.y-90;
+    return Math.hypot(cx-rHx,cy-rHy)<24;
+  }
+
+  function hitTest(cx,cy) {
+    const L=state.lines; if(!L) return null;
+    const TOL=26;
+    // Ref targets first (small, need priority)
+    for(const key of ['rL','rR']){
+      const q=imgToCanvas(L[key].x,L[key].y);
+      if(Math.hypot(cx-q.x,cy-q.y)<30) return{item:L[key],axis:'xy'};
+    }
+    // Pupil crosshairs
+    for(const key of ['pL','pR']){
+      const q=imgToCanvas(L[key].x,L[key].y);
+      if(Math.hypot(cx-q.x,cy-q.y)<34) return{item:L[key],axis:'xy'};
+    }
+    // Lines — need to project canvas point onto rotated axes
+    const ip=canvasToImg(cx,cy);
+    if(Math.abs(ip.x-L.vL.x)*view.scale<TOL) return{item:L.vL,axis:'x'};
+    if(Math.abs(ip.x-L.vR.x)*view.scale<TOL) return{item:L.vR,axis:'x'};
+    if(Math.abs(ip.y-L.hTop.y)*view.scale<TOL) return{item:L.hTop,axis:'y'};
+    if(Math.abs(ip.y-L.hBot.y)*view.scale<TOL) return{item:L.hBot,axis:'y'};
+    return null;
+  }
+
+  // TOUCH
+  canvas.addEventListener('touchstart', e=>{
+    e.preventDefault();
+    const r=rct();
+    if(e.touches.length===2){
+      dragItem=null; isPanning=false; rotHandle=null;
+      const d=dist2(e.touches[0],e.touches[1]);
+      const m=mid2(e.touches[0],e.touches[1],r);
+      pinch={dist:d,cx:m.x,cy:m.y,s0:view.scale,tx0:view.tx,ty0:view.ty,rot0:view.rot,
+             angle0:Math.atan2(e.touches[1].clientY-e.touches[0].clientY,
+                               e.touches[1].clientX-e.touches[0].clientX)};
+    } else if(e.touches.length===1){
+      pinch=null;
+      const p=pos(e);
+      if(isNearRotHandle(p.x,p.y)){
+        const L=state.lines;
+        const rotQ=imgToCanvas(L.rotCX,L.rotCY);
+        rotHandle={startAngle:Math.atan2(p.y-rotQ.y,p.x-rotQ.x),rot0:view.rot};
+        dragItem=null; isPanning=false;
+      } else {
+        const hit=hitTest(p.x,p.y);
+        if(hit){dragItem=hit; isPanning=false; rotHandle=null;}
+        else{dragItem=null; rotHandle=null; isPanning=true; panStart={x:p.x,y:p.y,tx0:view.tx,ty0:view.ty};}
+      }
+    }
+  },{passive:false});
+
+  canvas.addEventListener('touchmove', e=>{
+    e.preventDefault();
+    const r=rct();
+    if(e.touches.length===2 && pinch){
+      const d=dist2(e.touches[0],e.touches[1]);
+      const m=mid2(e.touches[0],e.touches[1],r);
+      // Scale with heavy dampening
+      const rawS=pinch.s0*(d/pinch.dist);
+      const newS=pinch.s0+(rawS-pinch.s0)*0.45;
+      const imgX=(pinch.cx-pinch.tx0)/pinch.s0, imgY=(pinch.cy-pinch.ty0)/pinch.s0;
+      view.scale=newS; view.tx=m.x-imgX*newS; view.ty=m.y-imgY*newS;
+      // Two-finger rotation (twist)
+      const curAngle=Math.atan2(e.touches[1].clientY-e.touches[0].clientY,
+                                e.touches[1].clientX-e.touches[0].clientX);
+      const dRot=(curAngle-pinch.angle0)*0.5; // dampen rotation too
+      view.rot=pinch.rot0+dRot;
+      clampView(canvas); drawCorrection();
+    } else if(e.touches.length===1){
+      const p=pos(e);
+      if(rotHandle){
+        const L=state.lines;
+        const rotQ=imgToCanvas(L.rotCX,L.rotCY);
+        const curA=Math.atan2(p.y-rotQ.y,p.x-rotQ.x);
+        view.rot=rotHandle.rot0+(curA-rotHandle.startAngle);
+        drawCorrection();
+      } else if(dragItem){
+        const ip=canvasToImg(p.x,p.y);
+        if(dragItem.axis==='x') dragItem.item.x=ip.x;
+        else if(dragItem.axis==='y') dragItem.item.y=ip.y;
+        else{dragItem.item.x=ip.x; dragItem.item.y=ip.y;}
+        drawCorrection();
+      } else if(isPanning && panStart){
+        view.tx=panStart.tx0+(p.x-panStart.x);
+        view.ty=panStart.ty0+(p.y-panStart.y);
+        drawCorrection();
+      }
+    }
+  },{passive:false});
+
+  canvas.addEventListener('touchend', e=>{
+    e.preventDefault();
+    if(e.touches.length<2) pinch=null;
+    if(e.touches.length===0){dragItem=null;isPanning=false;panStart=null;rotHandle=null;}
+  },{passive:false});
+
+  // MOUSE
+  let mDown=false;
+  canvas.addEventListener('mousedown',e=>{
+    mDown=true; const p=pos(e);
+    if(isNearRotHandle(p.x,p.y)){
+      const L=state.lines;
+      const rotQ=imgToCanvas(L.rotCX,L.rotCY);
+      rotHandle={startAngle:Math.atan2(p.y-rotQ.y,p.x-rotQ.x),rot0:view.rot};
+      dragItem=null; isPanning=false;
+    } else {
+      const hit=hitTest(p.x,p.y);
+      if(hit){dragItem=hit;rotHandle=null;isPanning=false;}
+      else{dragItem=null;rotHandle=null;isPanning=true;panStart={x:p.x,y:p.y,tx0:view.tx,ty0:view.ty};}
+    }
+  });
+  canvas.addEventListener('mousemove',e=>{
+    if(!mDown) return; const p=pos(e);
+    if(rotHandle){
+      const L=state.lines;
+      const rotQ=imgToCanvas(L.rotCX,L.rotCY);
+      const curA=Math.atan2(p.y-rotQ.y,p.x-rotQ.x);
+      view.rot=rotHandle.rot0+(curA-rotHandle.startAngle);
+      drawCorrection();
+    } else if(dragItem){
+      const ip=canvasToImg(p.x,p.y);
+      if(dragItem.axis==='x') dragItem.item.x=ip.x;
+      else if(dragItem.axis==='y') dragItem.item.y=ip.y;
+      else{dragItem.item.x=ip.x; dragItem.item.y=ip.y;}
+      drawCorrection();
+    } else if(isPanning && panStart){
+      view.tx=panStart.tx0+(p.x-panStart.x);
+      view.ty=panStart.ty0+(p.y-panStart.y);
+      drawCorrection();
+    }
+  });
+  canvas.addEventListener('mouseup',()=>{mDown=false;dragItem=null;isPanning=false;panStart=null;rotHandle=null;});
+  canvas.addEventListener('mouseleave',()=>{mDown=false;dragItem=null;isPanning=false;panStart=null;rotHandle=null;});
+
+  // WHEEL — very gentle
+  canvas.addEventListener('wheel',e=>{
+    e.preventDefault();
+    const r=rct(),mx=e.clientX-r.left,my=e.clientY-r.top;
+    const factor=e.deltaY>0?0.94:1.064;
+    const imgX=(mx-view.tx)/view.scale,imgY=(my-view.ty)/view.scale;
+    view.scale*=factor; clampView(canvas);
+    view.tx=mx-imgX*view.scale; view.ty=my-imgY*view.scale;
+    drawCorrection();
+  },{passive:false});
+}
+
+function applyZoomSlider(val) {
+  const canvas = document.getElementById('correct-canvas');
+  const W=canvas.width, H=canvas.height;
+  const baseScale = state._bgImg ? W/state._bgImg.width : 1;
+  const newScale = val/100 * baseScale;
+  // Zoom around center
+  const cx=W/2, cy=H/2;
+  const imgX=(cx-view.tx)/view.scale, imgY=(cy-view.ty)/view.scale;
+  view.scale=newScale;
+  view.tx=cx-imgX*newScale; view.ty=cy-imgY*newScale;
+  const el=document.getElementById('zoom-val');
+  if(el) el.textContent=Math.round(val)+'%';
+  drawCorrection();
+}
+
+
+// ── AI PRE-POSITIONING ────────────────────────────────────────
+// Sends the captured photo to Claude Vision API.
+// Claude identifies the glasses frame edges, pupils, and reference
+// markers and returns normalized coordinates (0-1) for each element.
+// We then map those back to image pixel coords and update state.lines.
+
+async function aiPrePosition(img) {
+  const W = img.width, H = img.height;
+  const box = document.getElementById('live-measure-box');
+
+  // Show loading state
+  if(box) box.innerHTML = '<div style="font-size:11px;color:#facc15;text-align:center;padding:6px">🤖 KI analysiert Bild…</div>';
+  const topbar = document.querySelector('#s-correct .topbar-title');
+  if(topbar) topbar.textContent = 'KI analysiert…';
+
+  try {
+    // Downscale to max 1024px wide for faster API + smaller payload
+    const maxW = 1024;
+    const scale = Math.min(1, maxW / W);
+    const tmpC = document.createElement('canvas');
+    tmpC.width  = Math.round(W * scale);
+    tmpC.height = Math.round(H * scale);
+    tmpC.getContext('2d').drawImage(img, 0, 0, tmpC.width, tmpC.height);
+    const b64 = tmpC.toDataURL('image/jpeg', 0.82).split(',')[1];
+
+    const prompt = `This optometry photo shows a person wearing:
+1. An optiZentrier calibration mount/bar on the FOREHEAD (above the eyebrows)
+2. Eyeglasses on the LOWER half of the face
+
+The calibration bar has TWO distinctive black-and-white circular target markers (like crosshair circles) at its far LEFT and far RIGHT ends — these are typically at roughly x=0.15-0.25 (left marker) and x=0.75-0.85 (right marker) of image width. They sit on the bar which is ABOVE the eyebrows.
+
+The eyeglasses are BELOW the calibration bar, sitting on the nose. The pupils are visible THROUGH the lenses.
+
+Return normalized coordinates (x=0 left edge, x=1 right edge, y=0 top, y=1 bottom):
+
+- refR: the circular target marker at the FAR LEFT of the calibration bar (patient's right side). x should be around 0.10-0.30
+- refL: the circular target marker at the FAR RIGHT of the calibration bar (patient's left side). x should be around 0.70-0.90
+- pupilOD: center of the RIGHT EYE pupil visible through the LEFT lens (x around 0.25-0.45, y below the calibration bar)
+- pupilOS: center of the LEFT EYE pupil visible through the RIGHT lens (x around 0.55-0.75, y below the calibration bar)
+- innerOD: the INNER (nasal) edge of the RIGHT lens frame — the vertical edge closest to the nose (x around 0.40-0.50)
+- innerOS: the INNER (nasal) edge of the LEFT lens frame — the vertical edge closest to the nose (x around 0.50-0.60)
+- frameTop: y-coordinate of the TOP horizontal rim of the eyeglasses frame (NOT the calibration bar)
+- frameBot: y-coordinate of the BOTTOM horizontal rim of the eyeglasses frame
+
+Return ONLY valid JSON, no markdown:
+{"refR":{"x":0,"y":0},"refL":{"x":0,"y":0},"pupilOD":{"x":0,"y":0},"pupilOS":{"x":0,"y":0},"innerOD":{"x":0,"y":0},"innerOS":{"x":0,"y":0},"frameTop":{"x":0.5,"y":0},"frameBot":{"x":0.5,"y":0},"ok":true}
+
+Set "ok":false and coordinates to null if too blurry or not visible.`;
+
+    // Check for API key
+    const apiKey = state._apiKey || localStorage.getItem('optiApiKey');
+    if(!apiKey) {
+      if(topbar) topbar.textContent = 'Fassungskorrektur';
+      if(box) box.innerHTML = '<div style="font-size:10px;color:#f97316;background:rgba(249,115,22,.1);border-radius:6px;padding:6px 8px;margin-top:4px;line-height:1.5">⚙ Kein API-Key — bitte in <b>Einstellungen</b> eintragen für KI-Vorjustierung</div>';
+      return;
+    }
+
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-allow-browser': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 512,
+        messages: [{ role: 'user', content: [
+          { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: b64 } },
+          { type: 'text', text: prompt }
+        ]}]
+      })
+    });
+
+    if(!resp.ok) throw new Error('API HTTP ' + resp.status);
+    const data = await resp.json();
+    const raw = (data.content?.find(b => b.type === 'text')?.text || '')
+                  .replace(/```json|```/g, '').trim();
+    const r = JSON.parse(raw);
+    if(!r || !r.ok) throw new Error('AI could not identify elements');
+
+    // Apply positions to state.lines (normalized → image pixels)
+    const L = state.lines;
+    const set = (obj, key, nx, ny) => {
+      if(!obj || !obj[key]) return;
+      if(nx != null) obj[key].x = nx * W;
+      if(ny != null) obj[key].y = ny * H;
+    };
+
+    if(r.refR)    { L.rL.x = r.refR.x*W;    L.rL.y = r.refR.y*H; }
+    if(r.refL)    { L.rR.x = r.refL.x*W;    L.rR.y = r.refL.y*H; }
+    if(r.pupilOD) { L.pL.x = r.pupilOD.x*W; L.pL.y = r.pupilOD.y*H; }
+    if(r.pupilOS) { L.pR.x = r.pupilOS.x*W; L.pR.y = r.pupilOS.y*H; }
+    if(r.innerOD) { L.vL.x = r.innerOD.x*W; }
+    if(r.innerOS) { L.vR.x = r.innerOS.x*W; }
+    if(r.frameTop){ L.hTop.y = r.frameTop.y*H; }
+    if(r.frameBot){ L.hBot.y = r.frameBot.y*H; }
+
+    // ── AUTO-ROTATE so that the frame top/bottom lines are truly horizontal ──
+    // We use the two ref markers (rL, rR) which should be on the same
+    // horizontal bar → the angle they make with the horizontal IS the
+    // head tilt angle. Correct view.rot to compensate.
+    if(r.refR && r.refL) {
+      const dx = L.rR.x - L.rL.x;
+      const dy = L.rR.y - L.rL.y;
+      const tiltAngle = Math.atan2(dy, dx); // positive = bar tilts up-right
+      view.rot = -tiltAngle;
+      // Update rotation center to midpoint between ref markers
+      L.rotCX = (L.rL.x + L.rR.x) / 2;
+      L.rotCY = (L.rL.y + L.rR.y) / 2;
+    }
+
+    // Re-zoom to fit detected working area snugly on screen
+    const canvas2 = document.getElementById('correct-canvas');
+    const cW2 = canvas2.width, cH2 = canvas2.height;
+    if(r.refR && r.frameBot) {
+      // Working region: from ref bar top to frame bottom, full width
+      const regionTop = Math.max(0, (r.refR.y * H) - H*0.05); // a bit above ref bar
+      const regionBot = Math.min(H, (r.frameBot.y * H) + H*0.04); // a bit below frame
+      const regionH = regionBot - regionTop;
+      const zoomToFit = Math.min(cW2 / img.width, cH2 / regionH) * 0.95;
+      view.scale = zoomToFit;
+      view.tx = (cW2 - img.width * zoomToFit) / 2;
+      const regionCenterY = (regionTop + regionBot) / 2;
+      view.ty = (cH2 / 2) - (regionCenterY * zoomToFit);
+    }
+
+    drawCorrection();
+
+    if(topbar) topbar.textContent = 'Fassungskorrektur';
+    if(box) box.innerHTML = '<div style="font-size:10px;color:#1D9E75;background:rgba(29,158,117,.12);border-radius:6px;padding:5px 7px;margin-top:6px;line-height:1.5">✓ KI hat Punkte gesetzt — bitte fein nachkorrigieren</div>';
+
+  } catch(e) {
+    console.warn('aiPrePosition error:', e.message);
+    if(topbar) topbar.textContent = 'Fassungskorrektur';
+    if(box) box.innerHTML = `<div style="font-size:10px;color:#888;background:rgba(255,255,255,.05);border-radius:6px;padding:5px 7px;margin-top:6px">KI-Fehler: ${e.message} — bitte manuell justieren</div>`;
+  }
+}
+
+
+function resetPoints(){
+  view.rot=0;
+  if(state._bgImg&&state._bgImg.naturalWidth>0){
+    const img=state._bgImg,canvas=document.getElementById('correct-canvas');
+    const W=canvas.width,H=canvas.height;
+    const fitS=Math.min(W/img.width,H/img.height);
+    view.scale=fitS; view.tx=(W-img.width*fitS)/2; view.ty=(H-img.height*fitS)/2;
+    state.lines=initLines(img.width,img.height);
+  }
+  drawCorrection();
+}
+function rebuildPoints(){ resetPoints(); }
+function confirmCorrection(){ computeAndShowResult(); }
+
+function computeAndShowResult(){
+  // Use the REAL measurement calculated live from the optician's
+  // line/crosshair placement — not simulated data.
+  // calcMeasurementFromLines() already returns customer-relative R/L
+  // (R=OD=customer's right eye, L=OS=customer's left eye) — use directly,
+  // no further swapping needed.
+  const m = calcMeasurementFromLines();
+  if(!m) {
+    showToast('Bitte zuerst Referenzpunkte (weiss) auf die Aufsatz-Marker setzen');
+    return;
+  }
+
+  const result = {
+    pdL: m.pdL, pdR: m.pdR,
+    hL: m.hL,   hR: m.hR,
+    fW: m.frameW, fH: m.frameH,
+    spread: 0,
+    mmPerPx: m.mmPerPx,
+    series: [{ pdL:m.pdL, pdR:m.pdR, hL:m.hL, hR:m.hR, fW:m.frameW, fH:m.frameH }]
+  };
+
+  state.lastResult = result;
+  document.getElementById('r-pd-l').textContent=result.pdL.toFixed(1);
+  document.getElementById('r-pd-r').textContent=result.pdR.toFixed(1);
+  document.getElementById('r-pd-total').textContent=(result.pdL+result.pdR).toFixed(1)+' mm';
+  document.getElementById('r-h-l').textContent=result.hL.toFixed(1);
+  document.getElementById('r-h-r').textContent=result.hR.toFixed(1);
+  document.getElementById('r-fw').textContent=result.fW.toFixed(1);
+  document.getElementById('r-fh').textContent=result.fH.toFixed(1);
+  document.getElementById('r-streu').textContent='Massstab: '+m.mmPerPx.toFixed(3)+' mm/px';
+  document.getElementById('series-display').innerHTML=
+    `<div class="ser-item best">Manuelle Korrektur<br><b>${(result.pdL+result.pdR).toFixed(1)}</b> mm Gesamt-PD</div>`;
+  showScreen('s-result');
+}
+
+// ── SETTINGS ──────────────────────────────────────────────────
+function toggleAuto(){state.autoCapture=!state.autoCapture;document.getElementById('s-auto-val').textContent=state.autoCapture?'Ein':'Aus';}
+function saveSettings(){
+  const v=id=>parseFloat(document.getElementById(id).value)||0;
+  if(v('s-hori')>50)state.cal.hori=v('s-hori');
+  if(v('s-dia-a')>0)state.cal.diaA=v('s-dia-a');
+  if(v('s-stab')>0)state.cal.stab=v('s-stab');
+  if(v('s-dia-u')>0)state.cal.diaU=v('s-dia-u');
+  const n=document.getElementById('s-name').value.trim();if(n)state.cal.name=n;
+  state.shots=parseInt(document.getElementById('s-shots').value)||3;
+  state.cal.date=new Date().toLocaleDateString('de-CH');
+  // Save to localStorage
+  try {
+    localStorage.setItem('optiCal', JSON.stringify({
+      cal: state.cal, shots: state.shots
+    }));
+  } catch(e){}
+  // Save API key
+  const apiKeyEl = document.getElementById('s-apikey');
+  if(apiKeyEl && apiKeyEl.value.trim().startsWith('sk-ant-')) {
+    try { localStorage.setItem('optiApiKey', apiKeyEl.value.trim()); } catch(e){}
+    state._apiKey = apiKeyEl.value.trim();
+    document.getElementById('s-apikey-status').textContent = '✓ Key gespeichert';
+    document.getElementById('s-apikey-status').style.color = '#1D9E75';
+  } else if(apiKeyEl && apiKeyEl.value.trim()) {
+    document.getElementById('s-apikey-status').textContent = '⚠ Ungültiger Key (muss mit sk-ant- beginnen)';
+    document.getElementById('s-apikey-status').style.color = '#f87171';
+  }
+  document.getElementById('cal-badge').textContent='Aufsatz '+state.cal.name+' · kalibriert';
+  document.getElementById('s-cal-date').textContent=state.cal.date;
+  showToast('Einstellungen gespeichert ✓');showHome();
+}
+
+function loadSettings(){
+  try {
+    const saved=localStorage.getItem('optiCal');
+    if(!saved) return;
+    const data=JSON.parse(saved);
+    if(data.cal) state.cal=Object.assign(state.cal,data.cal);
+    if(data.shots) state.shots=data.shots;
+    // Fill in fields
+    if(state.cal.hori) { const el=document.getElementById('s-hori'); if(el) el.value=state.cal.hori; }
+    if(state.cal.diaA) { const el=document.getElementById('s-dia-a'); if(el) el.value=state.cal.diaA; }
+    if(state.cal.stab) { const el=document.getElementById('s-stab'); if(el) el.value=state.cal.stab; }
+    if(state.cal.diaU) { const el=document.getElementById('s-dia-u'); if(el) el.value=state.cal.diaU; }
+    if(state.cal.name) { const el=document.getElementById('s-name'); if(el) el.value=state.cal.name; }
+    if(state.shots)    { const el=document.getElementById('s-shots'); if(el) el.value=state.shots; }
+    document.getElementById('cal-badge').textContent='Aufsatz '+state.cal.name+' · kalibriert';
+    document.getElementById('cal-status-top').textContent='Kalibriert';
+    if(state.cal.date) document.getElementById('s-cal-date').textContent=state.cal.date;
+    // Load API key
+    const savedKey = localStorage.getItem('optiApiKey');
+    if(savedKey) {
+      state._apiKey = savedKey;
+      const el = document.getElementById('s-apikey');
+      if(el) el.value = savedKey;
+      const st = document.getElementById('s-apikey-status');
+      if(st) { st.textContent = '✓ Key geladen'; st.style.color = '#1D9E75'; }
+    }
+  } catch(e){}
+}
+
+// ── EXPORT ────────────────────────────────────────────────────
+function exportResult(){
+  const r=state.lastResult;if(!r){showToast('Kein Ergebnis');return;}
+  const txt=['OptiZentrier — Messprotokoll','='.repeat(30),
+    'Datum: '+new Date().toLocaleString('de-CH'),
+    'Aufsatz: '+state.cal.name,'',
+    'PUPILLENDISTANZ',
+    'PD links:  '+r.pdL.toFixed(1)+' mm',
+    'PD rechts: '+r.pdR.toFixed(1)+' mm',
+    'PD gesamt: '+(r.pdL+r.pdR).toFixed(1)+' mm','',
+    'EINSCHLEIFHÖHE',
+    'Höhe links:  '+r.hL.toFixed(1)+' mm',
+    'Höhe rechts: '+r.hR.toFixed(1)+' mm','',
+    'Streuung: ±'+r.spread.toFixed(2)+' mm',
+  ].join('\n');
+  const a=document.createElement('a');
+  a.href='data:text/plain;charset=utf-8,'+encodeURIComponent(txt);
+  a.download='optiZentrier_'+new Date().toISOString().slice(0,10)+'.txt';
+  a.click();showToast('Export gestartet');
+}
+function copyResult(){
+  const r=state.lastResult;if(!r){showToast('Kein Ergebnis');return;}
+  const txt=`PD L:${r.pdL.toFixed(1)} R:${r.pdR.toFixed(1)} Ges:${(r.pdL+r.pdR).toFixed(1)} | Höhe L:${r.hL.toFixed(1)} R:${r.hR.toFixed(1)}`;
+  navigator.clipboard?.writeText(txt).then(()=>showToast('Kopiert')).catch(()=>showToast('Kopieren fehlgeschlagen'));
+}
+
+// Load saved calibration on startup
+window.addEventListener('load', loadSettings);
+
+function showToast(msg){
+  const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2500);
+}
+</script>
+</body>
+</html>
